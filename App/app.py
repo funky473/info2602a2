@@ -129,7 +129,7 @@ def home_page(pokemon_id=1):
 @app.route("/login", methods=['POST'])
 def login_action():
   # implement login
-  return "Login Action"
+   return render_template("home.html")
 
 @app.route("/pokemon/<int:pokemon_id>", methods=['POST'])
 @jwt_required()
