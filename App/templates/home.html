@@ -25,15 +25,35 @@
 {% block content %}
 <div class="row">
     <div class="col m3 list-container collection" style="max-height: 88vh;">
+        <ul class="collection-item active white-text" id="pokemon-list">
+            <!-- Pokemon list content here -->
+            {% for pokemon in pokemons %}
+                <li class="collection-item active black-text" id="pokemon-{{ pokemon.id }}" data-id="{{ pokemon.id }}">
+                    <a href="/app/{{pokemon.id}}" class="collection-item active black-text">{{ pokemon.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
   
     </div>
     
     <div class="col m3">
-
-            <p class="text-center">Selected Pokemon</p>
-
             <div id="pokemon-detail">
+                <p class="text-center">Selected Pokemon</p>
                  <!-- Show pokemon details here -->
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{{ pokemon.id}}.png" alt="" style="width: 300px; height: 300px;"class="responsive-img">
+                    <div class="card-content">
+                        <span class="card-title">{{pokemon.name}}
+                        <p>Type1: {{ pokemon.type1 }}</p>
+                        <p>Type2: {{ pokemon.type2 }}</p>
+                        <p>Height: {{ pokemon.height }}</p>
+                        <p>Weight: {{ pokemon.weight }}</p>
+                    </span>
+                    </div>
+                    <div class="card-action">
+                        
+                        <input type="text" id="name" placeholder="Enter a name">
+                        <a href="/pokemon/{{pokemon.id}}" class="btn waves-effect waves-light red">Capture</a>
+                    </div>
             </div>
 
     </div>
@@ -51,6 +71,18 @@
             </thead>
             <tbody>
               <!-- show captured pokemon here with controls to rename and release for each pokemon -->
+              {% for userpokemon in userpokemons %}
+                <tr>
+                    <td>
+                        {{ userpokemon.id }}
+                    </td>
+                    <td>{{ userpokemon.name }}</td>
+                    <td>
+                        <a href="/release/{{ userpokemon.id }}" class="btn waves-effect waves-light red">Release</a>
+                        <a href="/rename/{{ userpokemon.id }}" class="btn waves-effect waves-light red">Rename</a>
+                    </td>
+                </tr>
+              {% endfor %}  
             </tbody>
         </table>
     </div>

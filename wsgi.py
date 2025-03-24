@@ -1,4 +1,4 @@
-from App.models import User
+from App.models import User, UserPokemon, Pokemon
 import click
 from App import app, initialize_db
 
@@ -18,6 +18,18 @@ def create_user(username, password, email):
   db.session.add(user)
   db.session.commit()
   print(f'User {username} created successfully')
+
+@app.cli.command("get-poksuser", help="Get pokemons of a user")
+def get_user_pokemons():
+    userpoks = UserPokemon.query.all()
+    for userpok in userpoks:
+        print(f"User ID: {userpok.user_id}, Pokemon ID: {userpok.pokemon_id}, Name: {userpok.name}")
+
+@app.cli.command("get-pokemons", help="Get all pokemons")
+def get_all_pokemons():
+    pokemons = Pokemon.query.all()
+    for pokemon in pokemons:
+        print(f"Pokemon ID: {pokemon.id}, Name: {pokemon.name}")
 
 
 def login_user(username, password):

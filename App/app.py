@@ -124,8 +124,11 @@ def logout_action():
 def home_page(pokemon_id=1):
     # update pass relevant data to template
     pokemons = get_pokemons()
+    pokemon = Pokemon.query.filter_by(id=pokemon_id).first()
+    userpokemons = UserPokemon.query.all()
+    print(userpokemons)
     # get user from current_user
-    return render_template("home.html")
+    return render_template("home.html",pokemons=pokemons, pokemon_id=pokemon_id, pokemon=pokemon, userpokemons=userpokemons)
 
 # Action Routes (To Update)
 def login_user(username, password):
@@ -155,7 +158,19 @@ def login_action():
 @jwt_required()
 def capture_action(pokemon_id):
   # implement save newly captured pokemon, show a message then reload page
-  return redirect(request.referrer)
+  # get user from current_user
+  user = current_user
+  name = request.form['name']
+  print(name)
+  user.catch_pokemon(pokemon_id, name)
+  db.session.commit()
+  # flash('Pokemon captured')
+  userpok = UserPokemon.query.filter_by(user_id=user.id, pokemon_id=pokemon_id).first()
+  if userpok:
+    flash(f'Pokemon {userpok.name} captured')
+  else:
+    flash('Pokemon not captured')
+  return redirect(url_for('home_page'))
 
 @app.route("/rename-pokemon/<int:pokemon_id>", methods=['POST'])
 @jwt_required()
