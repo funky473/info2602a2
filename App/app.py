@@ -1,9 +1,9 @@
 import os, csv
 import datetime
-from flask import Flask, request, redirect, render_template, url_for, flash
-from flask_cors import CORS
-from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import (
+from flask import Flask, request, redirect, render_template, url_for, flash # type: ignore
+from flask_cors import CORS # type: ignore
+from sqlalchemy.exc import IntegrityError # type: ignore
+from flask_jwt_extended import ( 
     JWTManager,
     create_access_token,
     jwt_required,
@@ -43,6 +43,7 @@ def user_identity_lookup(user):
 def user_lookup_callback(_jwt_header, jwt_data):
   identity = jwt_data["sub"]
   return User.query.get(identity)
+
 
 # *************************************
 
@@ -122,14 +123,33 @@ def logout_action():
 @jwt_required()
 def home_page(pokemon_id=1):
     # update pass relevant data to template
+    pokemons = get_pokemons()
+    # get user from current_user
     return render_template("home.html")
 
 # Action Routes (To Update)
+def login_user(username, password):
+  user = User.query.filter_by(username=username).first()
+  if user and user.check_password(password):
+    token = create_access_token(identity=user)
+    return token
+  return None
 
 @app.route("/login", methods=['POST'])
 def login_action():
-  # implement login
-   return render_template("home.html")
+  data = request.form
+  token = login_user(data['username'], data['password'])
+  print(token)
+  response = None
+  if token:
+    flash('Logged in successfully.')  # send message to next page
+    response = redirect(
+        url_for('home_page'))  # redirect to main page if login successful
+    set_access_cookies(response, token)
+  else:
+    flash('Invalid username or password')  # send message to next page
+    response = redirect(url_for('login_page'))
+  return response
 
 @app.route("/pokemon/<int:pokemon_id>", methods=['POST'])
 @jwt_required()
@@ -151,3 +171,7 @@ def release_action(pokemon_id):
 
 if __name__ == "__main__":
   app.run(host='0.0.0.0', port=8080)
+
+def get_pokemons():
+  pokemons = Pokemon.query.all()
+  return pokemons
