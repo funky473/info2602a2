@@ -66,9 +66,13 @@ def initialize_db():
       db.session.add(pokemon)
     bob = User(username='bob', email="bob@mail.com", password="bobpass")
     db.session.add(bob)
+    funky = User(username='funky473', email="funky@mail.com", password="funkypass")
+    db.session.add(funky)
     db.session.commit()
     bob.catch_pokemon(1, "Benny")
     bob.catch_pokemon(25, "Saul")
+    bob.catch_pokemon(4, "Bobby")
+    funky.catch_pokemon(1, "Funky")
 
 # ********** Routes **************
 
@@ -122,13 +126,15 @@ def logout_action():
 @app.route("/app/<int:pokemon_id>", methods=['GET'])
 @jwt_required()
 def home_page(pokemon_id=1):
-    # update pass relevant data to template
     pokemons = get_pokemons()
     pokemon = Pokemon.query.filter_by(id=pokemon_id).first()
-    userpokemons = UserPokemon.query.all()
-    print(userpokemons)
-    # get user from current_user
-    return render_template("home.html",pokemons=pokemons, pokemon_id=pokemon_id, pokemon=pokemon, userpokemons=userpokemons)
+    userpokemons = UserPokemon.query.filter_by(user_id=current_user.id).all()
+    return render_template("home.html", 
+                         pokemons=pokemons, 
+                         pokemon=pokemon, 
+                         pokemon_id=pokemon_id-1, 
+                         userpokemons=userpokemons,
+                         Pokemon=Pokemon)  # Add this line
 
 # Action Routes (To Update)
 def login_user(username, password):
@@ -157,32 +163,71 @@ def login_action():
 @app.route("/pokemon/<int:pokemon_id>", methods=['POST'])
 @jwt_required()
 def capture_action(pokemon_id):
-  # implement save newly captured pokemon, show a message then reload page
-  # get user from current_user
-  user = current_user
-  name = request.form['name']
-  print(name)
-  user.catch_pokemon(pokemon_id, name)
-  db.session.commit()
-  # flash('Pokemon captured')
-  userpok = UserPokemon.query.filter_by(user_id=user.id, pokemon_id=pokemon_id).first()
-  if userpok:
-    flash(f'Pokemon {userpok.name} captured')
-  else:
-    flash('Pokemon not captured')
-  return redirect(url_for('home_page'))
+    pokemon_name = request.form.get("pokemon_name")
+    try:
+        # Verify pokemon exists first
+        pokemon = Pokemon.query.get(pokemon_id)
+        if not pokemon:
+            flash('Pokemon not found')
+            return redirect(url_for('home_page'))
+            
+        # Check if user already has this pokemon
+        existing = UserPokemon.query.filter_by(
+            user_id=current_user.id, 
+            pokemon_id=pokemon_id
+        ).first()
+        
+        if existing:
+            flash('You already have this Pokemon')
+            return redirect(url_for('home_page'))
+            
+        # Create new UserPokemon instance
+        new_pokemon = UserPokemon(
+            user_id=current_user.id,
+            pokemon_id=pokemon_id,
+            name=pokemon_name
+        )
+        
+        # Add and commit to database
+        db.session.add(new_pokemon)
+        db.session.commit()
+        
+        flash('Pokemon captured successfully')
+            
+    except Exception as e:
+        print(f"Error: {str(e)}")  # Add logging for debugging
+        db.session.rollback()
+        flash('Error capturing Pokemon')
+        
+    return redirect(url_for('home_page'))
 
 @app.route("/rename-pokemon/<int:pokemon_id>", methods=['POST'])
 @jwt_required()
 def rename_action(pokemon_id):
   # implement rename pokemon, show a message then reload page
-  return redirect(request.referrer)
+  rename = request.form.get("rename")
+  res = UserPokemon.query.filter_by(user_id=current_user.id, pokemon_id=pokemon_id).first()
+  res.name = rename
+  db.session.add(res)
+  db.session.commit()
+  if not res:
+    flash('Pokemon not renamed')
+  else:
+    flash('Pokemon renamed')
+  return redirect(url_for('home_page'))
 
 @app.route("/release-pokemon/<int:pokemon_id>", methods=['GET'])
 @jwt_required()
 def release_action(pokemon_id):
   # implement release pokemon, show a message then reload page
-  return redirect(request.referrer)
+  res = UserPokemon.query.filter_by(pokemon_id=pokemon_id, user_id=current_user.id).first()
+  if res:
+    db.session.delete(res)
+    db.session.commit()
+    flash('Pokemon released')
+  else:
+    flash('Pokemon could not release')
+  return redirect(url_for('home_page'))
 
 if __name__ == "__main__":
   app.run(host='0.0.0.0', port=8080)
